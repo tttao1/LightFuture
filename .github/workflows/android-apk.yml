@@ -1,0 +1,98 @@
+name: Build Android Demo APK
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'lib/**'
+      - 'test/**'
+      - 'tool/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - 'analysis_options.yaml'
+      - '.github/workflows/android-apk.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-demo-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Test and build APK
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.35.7'
+          cache: true
+
+      - name: Show build environment
+        run: |
+          flutter --version
+          java -version
+
+      - name: Check Android project preparation
+        run: python3 -m unittest discover -s tool/tests -v
+
+      - name: Generate Android project
+        run: python3 tool/prepare_android.py --project .ci/android_project
+
+      - name: Install Flutter dependencies
+        working-directory: .ci/android_project
+        run: flutter pub get
+
+      - name: Format and analyze Dart
+        working-directory: .ci/android_project
+        run: |
+          dart format lib test
+          flutter analyze --no-fatal-infos
+
+      - name: Run game and widget tests
+        working-directory: .ci/android_project
+        run: flutter test
+
+      - name: Build universal release APK
+        working-directory: .ci/android_project
+        run: flutter build apk --release --build-number="$GITHUB_RUN_NUMBER"
+
+      - name: Verify APK signature and offline permissions
+        run: |
+          python3 tool/verify_apk.py --apk .ci/android_project/build/app/outputs/flutter-apk/app-release.apk --output dist
+          cp .ci/android_project/pubspec.lock dist/pubspec.lock
+
+      - name: Upload installable APK
+        uses: actions/upload-artifact@v7
+        with:
+          path: dist/lightfuture-demo.apk
+          archive: false
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload build details
+        uses: actions/upload-artifact@v7
+        with:
+          name: build-details
+          path: |
+            dist/build-report.txt
+            dist/SHA256SUMS.txt
+            dist/pubspec.lock
+          if-no-files-found: error
+          retention-days: 14
