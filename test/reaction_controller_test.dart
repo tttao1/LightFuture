@@ -184,4 +184,31 @@ void main() {
     expect(result(5, 200).isBetterThan(result(5, 200)), isFalse);
     expect(result(5, 200).score, inInclusiveRange(0, 1000));
   });
+  testWidgets('all ten difficulties enforce their response window boundary', (
+    tester,
+  ) async {
+    for (var level = 1; level <= 10; level++) {
+      for (final late in [false, true]) {
+        var now = 0;
+        final game = ReactionController(
+          level: level,
+          nowMicros: () => now,
+          waitingDuration: () => Duration.zero,
+        );
+        try {
+          game.start();
+          await tester.pump(const Duration(seconds: 3));
+          game.signalFramePresented(game.signalToken);
+          now = game.responseLimit * 1000 - (late ? 0 : 1000);
+          game.tap();
+          expect(
+            game.lastAttempt!.outcome,
+            late ? AttemptOutcome.timeout : AttemptOutcome.success,
+          );
+        } finally {
+          game.dispose();
+        }
+      }
+    }
+  });
 }

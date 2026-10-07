@@ -3,7 +3,15 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 
-enum ReactionPhase { idle, countdown, waiting, ready, feedback, paused, finished }
+enum ReactionPhase {
+  idle,
+  countdown,
+  waiting,
+  ready,
+  feedback,
+  paused,
+  finished,
+}
 
 enum AttemptOutcome { success, falseStart, timeout }
 
@@ -17,8 +25,10 @@ class ReactionAttempt {
 
 @immutable
 class ReactionSummary {
-  ReactionSummary({required this.level, required List<ReactionAttempt> attempts})
-      : attempts = List.unmodifiable(attempts);
+  ReactionSummary({
+    required this.level,
+    required List<ReactionAttempt> attempts,
+  }) : attempts = List.unmodifiable(attempts);
 
   final int level;
   final List<ReactionAttempt> attempts;
@@ -52,7 +62,8 @@ class ReactionSummary {
     if (successes == 0) return false;
     if (other == null) return true;
     if (accuracy != other.accuracy) return accuracy > other.accuracy;
-    return averageMilliseconds! < (other.averageMilliseconds ?? double.infinity);
+    return averageMilliseconds! <
+        (other.averageMilliseconds ?? double.infinity);
   }
 
   String get comment {
@@ -70,16 +81,15 @@ class ReactionController extends ChangeNotifier {
     required this.level,
     int Function()? nowMicros,
     Duration Function()? waitingDuration,
-  })  : assert(level >= 1 && level <= 10),
-        _nowMicros = nowMicros,
-        _waitingDuration = waitingDuration;
+  }) : assert(level >= 1 && level <= 10),
+       _nowMicros = nowMicros,
+       _waitingDuration = waitingDuration;
 
   static const roundCount = 5;
   static const feedbackDuration = Duration(milliseconds: 1100);
 
-  static int responseLimitFor(int level) => const [
-        1500, 1400, 1300, 1150, 1000, 950, 900, 850, 800, 700,
-      ][level - 1];
+  static int responseLimitFor(int level) =>
+      const [1500, 1400, 1300, 1150, 1000, 950, 900, 850, 800, 700][level - 1];
 
   final int level;
   final int Function()? _nowMicros;
@@ -137,7 +147,8 @@ class ReactionController extends ChangeNotifier {
     _signalAt = null;
     _phase = ReactionPhase.waiting;
     _notify();
-    final duration = _waitingDuration?.call() ??
+    final duration =
+        _waitingDuration?.call() ??
         Duration(milliseconds: 1500 + _random.nextInt(3001));
     _timer = Timer(duration, () {
       _phase = ReactionPhase.ready;
@@ -170,10 +181,12 @@ class ReactionController extends ChangeNotifier {
     if (elapsedMicros >= responseLimit * 1000) {
       _settle(const ReactionAttempt(AttemptOutcome.timeout));
     } else {
-      _settle(ReactionAttempt(
-        AttemptOutcome.success,
-        milliseconds: max(1, (elapsedMicros / 1000).round()),
-      ));
+      _settle(
+        ReactionAttempt(
+          AttemptOutcome.success,
+          milliseconds: max(1, (elapsedMicros / 1000).round()),
+        ),
+      );
     }
   }
 

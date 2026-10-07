@@ -1,13 +1,15 @@
 name: light_future_demo
-description: A fully offline reaction training demo for Android.
+description: An offline collection of memory, attention, reaction and reasoning games.
 publish_to: none
-version: 0.1.0+1
+version: 1.0.0+1
 
 environment:
   sdk: '>=3.9.0 <4.0.0'
 
 dependencies:
   flutter:
+    sdk: flutter
+  flutter_localizations:
     sdk: flutter
 
 dev_dependencies:

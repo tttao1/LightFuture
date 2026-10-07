@@ -51,7 +51,11 @@ def configure_manifest(path: Path, *, main: bool) -> None:
         app = root.find("application")
         if app is None:
             raise ValueError("Android application element is missing")
-        app.set(f"{{{ANDROID_NS}}}label", "脑力训练 Demo")
+        app.set(f"{{{ANDROID_NS}}}label", "脑力训练")
+        app.set(f"{{{ANDROID_NS}}}allowBackup", "false")
+        app.set(f"{{{ANDROID_NS}}}fullBackupContent", "false")
+        app.set(f"{{{ANDROID_NS}}}icon", "@drawable/training_icon")
+        app.set(f"{{{ANDROID_NS}}}roundIcon", "@drawable/training_icon")
         for activity in app.findall("activity"):
             if activity.get(f"{{{ANDROID_NS}}}name") == ".MainActivity":
                 activity.set(f"{{{ANDROID_NS}}}name", "cn.lightfuture.light_future_demo.MainActivity")
@@ -68,6 +72,12 @@ def prepare(project: Path, repo: Path) -> None:
     signing_key = repo / "tool" / "demo-signing" / "demo-keystore.jks"
     if not signing_key.is_file():
         raise FileNotFoundError("Missing public demo signing key; upload tool/demo-signing too")
+    native_host = repo / "tool" / "android" / "MainActivity.kt"
+    if not native_host.is_file():
+        raise FileNotFoundError("Missing local storage/audio host; upload tool/android/MainActivity.kt too")
+    native_icon = repo / "tool/android/training_icon.xml"
+    if not native_icon.is_file():
+        raise FileNotFoundError("Missing launcher icon; upload tool/android/training_icon.xml too")
     project.parent.mkdir(parents=True, exist_ok=True)
     subprocess.run([
         "flutter", "create", "--no-pub", "--empty", "--platforms=android",
@@ -83,6 +93,12 @@ def prepare(project: Path, repo: Path) -> None:
     gradle = project / "android" / "app" / "build.gradle.kts"
     gradle.write_text(configure_gradle(gradle.read_text(encoding="utf-8")), encoding="utf-8")
     shutil.copy2(signing_key, gradle.parent / "demo-keystore.jks")
+    host_target = gradle.parent / "src/main/kotlin/cn/lightfuture/light_future_demo/MainActivity.kt"
+    host_target.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(native_host, host_target)
+    icon_target = gradle.parent / "src/main/res/drawable/training_icon.xml"
+    icon_target.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(native_icon, icon_target)
     for manifest in (project / "android" / "app" / "src").glob("*/AndroidManifest.xml"):
         configure_manifest(manifest, main=manifest.parent.name == "main")
     print(f"Prepared offline Android demo: {project}")

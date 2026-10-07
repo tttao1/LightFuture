@@ -23,6 +23,8 @@ def package(repo: Path) -> Path:
         "lib/games/reaction_controller.dart", "test/reaction_controller_test.dart",
         "test/widget_test.dart", "tool/prepare_android.py", "tool/verify_apk.py",
         "tool/demo-signing/demo-keystore.jks", "tool/demo-signing/demo-certificate.der",
+        "tool/android/MainActivity.kt",
+        "tool/android/training_icon.xml",
         "docs/GitHub打包APK教程.md",
     }
     with zipfile.ZipFile(destination) as archive:

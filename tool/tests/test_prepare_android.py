@@ -69,7 +69,9 @@ class PrepareTests(unittest.TestCase):
             root = ET.parse(manifest).getroot()
             self.assertEqual(root.findall("uses-permission"), [])
             app = root.find("application")
-            self.assertEqual(app.get(f"{{{ANDROID_NS}}}label"), "脑力训练 Demo")
+            self.assertEqual(app.get(f"{{{ANDROID_NS}}}label"), "脑力训练")
+            self.assertEqual(app.get(f"{{{ANDROID_NS}}}allowBackup"), "false")
+            self.assertEqual(app.get(f"{{{ANDROID_NS}}}icon"), "@drawable/training_icon")
             self.assertEqual(app.get(f"{{{ANDROID_NS}}}name"), "${applicationName}")
             self.assertEqual(app.find("activity").get(f"{{{ANDROID_NS}}}name"),
                              "cn.lightfuture.light_future_demo.MainActivity")
@@ -85,13 +87,15 @@ class PrepareTests(unittest.TestCase):
     def test_bootstrap_copies_sources_and_configures_generated_project(self):
         with tempfile.TemporaryDirectory() as folder:
             repo = Path(folder)
-            for name in ("lib", "test", "tool/demo-signing"):
+            for name in ("lib", "test", "tool/demo-signing", "tool/android"):
                 (repo / name).mkdir(parents=True)
             (repo / "lib/main.dart").write_text("original demo", encoding="utf-8")
             (repo / "test/widget_test.dart").write_text("demo tests", encoding="utf-8")
             (repo / "pubspec.yaml").write_text("name: light_future_demo", encoding="utf-8")
             (repo / "analysis_options.yaml").write_text("analyzer: {}", encoding="utf-8")
             (repo / "tool/demo-signing/demo-keystore.jks").write_bytes(b"test fixture key")
+            (repo / "tool/android/MainActivity.kt").write_text("native storage and audio host", encoding="utf-8")
+            (repo / "tool/android/training_icon.xml").write_text("<vector />", encoding="utf-8")
             project = repo / ".ci/android_project"
 
             def create_host(command, **kwargs):
@@ -108,6 +112,9 @@ class PrepareTests(unittest.TestCase):
             self.assertEqual((project / "lib/main.dart").read_text(), "original demo")
             self.assertEqual((repo / "lib/main.dart").read_text(), "original demo")
             self.assertTrue((project / "android/app/demo-keystore.jks").is_file())
+            self.assertTrue((project / "android/app/src/main/res/drawable/training_icon.xml").is_file())
+            self.assertEqual((project / "android/app/src/main/kotlin/cn/lightfuture/light_future_demo/MainActivity.kt")
+                             .read_text(encoding="utf-8"), "native storage and audio host")
             self.assertEqual(ET.parse(project / "android/app/src/debug/AndroidManifest.xml")
                              .getroot().findall("uses-permission"), [])
             with self.assertRaises(ValueError):
