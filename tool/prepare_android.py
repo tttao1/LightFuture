@@ -9,6 +9,7 @@ import xml.etree.ElementTree as ET
 
 ANDROID_NS = "http://schemas.android.com/apk/res/android"
 APP_ID = "cn.lightfuture.demo"
+MIN_SDK = 24  # Flutter 3.35 requires Android 7.0 or newer.
 ET.register_namespace("android", ANDROID_NS)
 
 
@@ -32,7 +33,7 @@ def configure_gradle(text: str) -> str:
     text = replace_once(text, "android {\n", signing)
     text = replace_once(text, 'signingConfig = signingConfigs.getByName("debug")',
                         'signingConfig = signingConfigs.getByName("demo")')
-    text = replace_once(text, "minSdk = flutter.minSdkVersion", "minSdk = 23")
+    text = replace_once(text, "minSdk = flutter.minSdkVersion", f"minSdk = {MIN_SDK}")
     text = replace_once(text, 'applicationId = "cn.lightfuture.light_future_demo"',
                         f'applicationId = "{APP_ID}"')
     return text

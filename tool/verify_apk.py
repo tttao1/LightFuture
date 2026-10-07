@@ -9,12 +9,25 @@ import re
 import shutil
 import subprocess
 
-from prepare_android import APP_ID
+from prepare_android import APP_ID, MIN_SDK
 
 
 def run(command: list[str]) -> str:
     return subprocess.run(command, check=True, capture_output=True, text=True,
                           encoding="utf-8").stdout
+
+
+def verify_min_sdk(badging: str) -> int:
+    match = re.search(r'''(?m)^\s*sdkVersion:\s*['"](\d+)['"]\s*$''', badging)
+    if match is None:
+        raise RuntimeError("Cannot read APK minimum Android API from aapt badging output")
+    actual = int(match.group(1))
+    if actual != MIN_SDK:
+        raise RuntimeError(
+            f"APK minimum Android API is {actual}; expected {MIN_SDK}. "
+            "Check the generated Gradle configuration and Flutter SDK version."
+        )
+    return actual
 
 
 def main(apk: Path, output: Path) -> None:
@@ -34,8 +47,8 @@ def main(apk: Path, output: Path) -> None:
         raise RuntimeError("Offline APK unexpectedly requests Internet access")
     if f"name='{APP_ID}'" not in badging:
         raise RuntimeError("APK has an unexpected application ID")
-    if "sdkVersion:'23'" not in badging:
-        raise RuntimeError("APK has an unexpected minimum Android version")
+    min_sdk = verify_min_sdk(badging)
+    print(f"APK minimum Android API: {min_sdk} (expected {MIN_SDK})")
     signature = run([str(build_tools / "apksigner"), "verify", "--verbose", "--print-certs", str(apk)])
     certificate = Path(__file__).parent / "demo-signing" / "demo-certificate.der"
     expected = hashlib.sha256(certificate.read_bytes()).hexdigest()
@@ -47,7 +60,7 @@ def main(apk: Path, output: Path) -> None:
     digest = hashlib.sha256(destination.read_bytes()).hexdigest()
     (output / "SHA256SUMS.txt").write_text(f"{digest}  {destination.name}\n", encoding="utf-8")
     report = (
-        f"Application ID: {APP_ID}\nMinimum Android: 6.0 (API 23)\n"
+        f"Application ID: {APP_ID}\nMinimum Android API: {min_sdk}\n"
         f"Commit: {os.environ.get('GITHUB_SHA', 'local')}\n"
         f"Run: {os.environ.get('GITHUB_RUN_NUMBER', 'local')}\n"
         f"APK SHA-256: {digest}\n\n{permissions}\n{signature}\n{badging}"

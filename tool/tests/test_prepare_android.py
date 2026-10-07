@@ -7,7 +7,7 @@ import xml.etree.ElementTree as ET
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from prepare_android import ANDROID_NS, configure_gradle, configure_manifest, prepare
+from prepare_android import ANDROID_NS, MIN_SDK, configure_gradle, configure_manifest, prepare
 
 # Relevant lines of the Flutter 3.35.7 template, verified from flutter/flutter.
 GRADLE = '''plugins {
@@ -53,7 +53,8 @@ class PrepareTests(unittest.TestCase):
         self.assertIn('namespace = "cn.lightfuture.light_future_demo"', configured)
         self.assertIn('signingConfig = signingConfigs.getByName("demo")', configured)
         self.assertIn('storeFile = file("demo-keystore.jks")', configured)
-        self.assertIn('minSdk = 23', configured)
+        self.assertEqual(MIN_SDK, 24)
+        self.assertIn('minSdk = 24', configured)
         self.assertEqual(configured.count('create("demo")'), 1)
 
     def test_unexpected_template_fails_instead_of_silently_using_debug_key(self):
