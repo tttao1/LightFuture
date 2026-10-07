@@ -1,0 +1,19 @@
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.idea/
+.vscode/
+build/
+coverage/
+.ci/
+.qa/
+dist/
+__pycache__/
+*.pyc
+*.log
+local.properties
+key.properties
+*.jks
+*.keystore
+# This intentionally public key is used only for the isolated demo application.
+!tool/demo-signing/demo-keystore.jks
